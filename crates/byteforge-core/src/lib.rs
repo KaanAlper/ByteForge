@@ -4,6 +4,7 @@ pub mod archive;
 pub mod deobf;
 pub mod diff;
 pub mod disasm;
+pub mod decompile;
 pub mod elf;
 pub mod entropy;
 pub mod error;
