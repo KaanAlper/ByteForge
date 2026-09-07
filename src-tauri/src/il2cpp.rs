@@ -243,20 +243,25 @@ pub fn il2cpp_resolve_search(
         else {
             continue;
         };
-        // Derleyici-üretimi gürültüsünü ele (lambda/backing field/ctor) — Hedefler
-        // bölümü gibi yalnız anlamlı metotlar.
-        if mn.starts_with('<')
-            || mn.contains(">b__")
-            || mn.contains(">c__")
-            || mn.contains(">d__")
-            || mn.contains("__BackingField")
+        // Derleyici-üretimi gürültüsünü ele (TİP ya da METOD): lambda/state-machine/
+        // display-class/backing-field/ctor. Hedefler bölümü gibi yalnız anlamlı metot.
+        let full = format!("{ty}.{mn}");
+        let fl = full.to_lowercase();
+        if full.starts_with('<')
+            || ty.starts_with('<')
+            || mn.starts_with('<')
+            || fl.contains(">b__")
+            || fl.contains(">c__")
+            || fl.contains(">d__")
+            || fl.contains("__backingfield")
+            || fl.contains("c__displayclass")
+            || fl.contains("c__iterator")
             || mn == ".ctor"
             || mn == ".cctor"
         {
             continue;
         }
-        let full = format!("{ty}.{mn}");
-        if !q.is_empty() && !full.to_lowercase().contains(&q) {
+        if !q.is_empty() && !fl.contains(&q) {
             continue;
         }
         let rva = u64::from_str_radix(rva_s, 16).unwrap_or(0);
