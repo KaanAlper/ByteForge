@@ -16,6 +16,7 @@ import type {
   PatchPreview,
   PatchTemplate,
   HexChunk,
+  DisasmLine,
   ResolvedMethod,
   ApiError,
 } from "../types";
@@ -102,6 +103,8 @@ export function UnifiedStudio({
   const [prologue, setPrologue] = useState<PrologueCheck | null>(null);
   const [preview, setPreview] = useState<PatchPreview | null>(null);
   const [hex, setHex] = useState<HexChunk | null>(null);
+  const [disasm, setDisasm] = useState<DisasmLine[] | null>(null);
+  const [baseRva, setBaseRva] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -142,12 +145,12 @@ export function UnifiedStudio({
 
   // Detay verisini (hex + prologue + önizleme) belirli bir ofset + şablon için yükler.
   const loadDetail = useCallback(
-    async (off: number, tmplKind: string) => {
+    async (off: number, tmplKind: string, base: number) => {
       if (!soPath) return;
       setError(null);
       try {
         const start = off >= 16 ? off - 16 : 0;
-        const [h, pro, prev] = await Promise.all([
+        const [h, pro, prev, dis] = await Promise.all([
           invoke<HexChunk>("read_hex", { path: soPath, offset: start, len: 64 }),
           invoke<PrologueCheck>("check_prologue", { path: soPath, offset: off, arch: "arm64" }),
           invoke<PatchPreview>("patch_preview", {
@@ -155,10 +158,18 @@ export function UnifiedStudio({
             offset: off,
             template: tmplByKind(tmplKind),
           }),
+          invoke<DisasmLine[]>("disassemble_range", {
+            path: soPath,
+            offset: off,
+            len: 64,
+            base,
+            arch: "arm64",
+          }),
         ]);
         setHex(h);
         setPrologue(pro);
         setPreview(prev);
+        setDisasm(dis);
       } catch (e) {
         setError(errMsg(e));
       }
@@ -194,14 +205,15 @@ export function UnifiedStudio({
               return;
             }
             setOffset(off);
-            return loadDetail(off, prev?.kind ?? defKind);
+            setBaseRva(selected.rva);
+            return loadDetail(off, prev?.kind ?? defKind, selected.rva);
           })
           .catch((e) => setError(errMsg(e)));
       }
     } else if (prev) {
       setOffset(prev.offset);
       setRvaInput("");
-      loadDetail(prev.offset, prev.kind);
+      loadDetail(prev.offset, prev.kind, baseRva);
     } else {
       setOffset(null);
       setRvaInput("");
@@ -226,7 +238,8 @@ export function UnifiedStudio({
         return;
       }
       setOffset(off);
-      await loadDetail(off, template);
+      setBaseRva(rva);
+      await loadDetail(off, template, rva);
     } catch (e) {
       setError(errMsg(e));
     } finally {
@@ -237,7 +250,7 @@ export function UnifiedStudio({
   // Şablon değişince önizlemeyi yenile.
   const changeTemplate = async (kind: string) => {
     setTemplate(kind);
-    if (offset != null) await loadDetail(offset, kind);
+    if (offset != null) await loadDetail(offset, kind, baseRva);
   };
 
   const applyPatch = async () => {
@@ -260,7 +273,7 @@ export function UnifiedStudio({
       });
       setPatched((p) => ({ ...p, [selected.name]: { offset, kind: template } }));
       setStatus(`Yamalandı: ${selected.name} → ${TEMPLATE_LABEL[template]} (@${hx(offset)})`);
-      await loadDetail(offset, template);
+      await loadDetail(offset, template, baseRva);
     } catch (e) {
       setError(errMsg(e));
     } finally {
@@ -280,7 +293,7 @@ export function UnifiedStudio({
         return n;
       });
       setStatus(msg);
-      await loadDetail(offset, template);
+      await loadDetail(offset, template, baseRva);
     } catch (e) {
       setError(errMsg(e));
     } finally {
@@ -643,6 +656,23 @@ export function UnifiedStudio({
                   </span>
                   {hexView()}
                 </div>
+
+                {disasm && disasm.length > 0 && (
+                  <div className="us-disasm-card">
+                    <span className="field-label">Disassembly (ARM64) — fonksiyon başı</span>
+                    <div className="us-disasm">
+                      {disasm.map((l, k) => (
+                        <div key={k} className={`us-disasm-row ${k === 0 ? "hl" : ""}`}>
+                          <span className="ud-addr mono">
+                            0x{l.address.toString(16).toUpperCase()}
+                          </span>
+                          <span className="ud-bytes mono">{l.bytes}</span>
+                          <span className="ud-text mono">{l.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </>

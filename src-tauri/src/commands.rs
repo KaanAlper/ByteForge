@@ -820,3 +820,27 @@ pub(crate) fn repack_replacing(
     })?;
     Ok(())
 }
+
+/// Bir ikilinin (`.so`/`.exe`/`.dll`) belirtilen ofsetinden itibaren `len` baytı
+/// disassemble eder (native Rust, yaxpeax). `base` gösterilecek başlangıç adresi
+/// (genelde RVA). arch: "arm64" | "x86".
+#[tauri::command]
+pub fn disassemble_range(
+    path: String,
+    offset: usize,
+    len: usize,
+    base: u64,
+    arch: String,
+) -> Result<Vec<byteforge_core::disasm::DisasmLine>, ApiError> {
+    // .so veya PE — ikisini de kabul et.
+    let canonical = validate_file(&path, SO_EXTS)
+        .or_else(|_| validate_file(&path, PE_EXTS))?;
+    let bytes = std::fs::read(&canonical).map_err(|e| ApiError::Io {
+        message: e.to_string(),
+    })?;
+    let end = offset.saturating_add(len).min(bytes.len());
+    if offset >= bytes.len() {
+        return Ok(Vec::new());
+    }
+    Ok(byteforge_core::disasm::disassemble(&bytes[offset..end], base, &arch))
+}

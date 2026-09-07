@@ -270,6 +270,12 @@ export type ForcedReturn =
   | { kind: "null" }
   | { kind: "max_int" };
 
+export interface DisasmLine {
+  address: number;
+  bytes: string;
+  text: string;
+}
+
 export interface HexChunk {
   total: number;
   offset: number;

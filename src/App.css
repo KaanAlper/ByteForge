@@ -4065,3 +4065,20 @@ input.mono, .il2cpp-search { font-family: var(--mono); }
   font-size: 10px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase;
   color: var(--muted); padding: 0 12px 6px; opacity: 0.7;
 }
+
+/* Disassembly kartı — hex'in yanında mnemonic görünümü */
+.us-disasm-card { margin-top: 14px; }
+.us-disasm {
+  margin-top: 7px; border: 1px solid var(--border); border-radius: 10px;
+  background: #0b0f16; overflow: hidden; font-family: var(--mono); font-size: 12.5px;
+}
+.us-disasm-row {
+  display: grid; grid-template-columns: 96px 130px 1fr; gap: 12px;
+  padding: 4px 12px; border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.us-disasm-row:last-child { border-bottom: none; }
+.us-disasm-row.hl { background: var(--accent-tint); }
+.ud-addr { color: var(--muted); }
+.ud-bytes { color: var(--text-2); }
+.ud-text { color: #cfe3ff; }
+.us-disasm-row.hl .ud-text { color: var(--accent-2); font-weight: 600; }
