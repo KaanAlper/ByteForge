@@ -45,7 +45,7 @@ fn get_cli_file() -> Option<String> {
 
 fn cli_help() {
     println!(
-        "APKForge — Android RE iş istasyonu\n\n\
+        "ByteForge — tersine mühendislik & modlama stüdyosu\n\n\
          Kullanım:\n  \
          byteforge [komut] [argümanlar]\n\n\
          Headless komutlar (GUI açmadan):\n  \
