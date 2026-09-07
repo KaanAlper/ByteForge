@@ -7,6 +7,7 @@ import { Disclaimer } from "./components/Disclaimer";
 import { DiffView } from "./components/DiffView";
 import { NativePanel } from "./components/NativePanel";
 import { AndroidSection } from "./components/AndroidSection";
+import { YaraPanel } from "./components/YaraPanel";
 import { SmaliWorkbench } from "./components/SmaliWorkbench";
 import { JavaWorkbench } from "./components/JavaWorkbench";
 import { HexEditor } from "./components/HexEditor";
@@ -20,6 +21,7 @@ import { FridaPanel } from "./components/FridaPanel";
 import { MemScanner } from "./components/MemScanner";
 import {
   Smartphone,
+  ShieldAlert,
   Binary,
   AppWindow,
   ScrollText,
@@ -47,6 +49,7 @@ type TabId =
   | "java"
   | "hex"
   | "diff"
+  | "yara"
   | "split"
   | "console"
   | "frida"
@@ -62,6 +65,7 @@ const TABS: { id: TabId; icon: LucideIcon; label: string }[] = [
   { id: "java", icon: Coffee, label: "Java" },
   { id: "hex", icon: Hash, label: "Hex" },
   { id: "diff", icon: GitCompare, label: "Diff" },
+  { id: "yara", icon: ShieldAlert, label: "Yara" },
   { id: "split", icon: Split, label: "Split" },
   { id: "console", icon: Terminal, label: "Konsol" },
   { id: "frida", icon: Zap, label: "Frida" },
@@ -74,7 +78,7 @@ const TABS: { id: TabId; icon: LucideIcon; label: string }[] = [
 const NAV_GROUPS: { title: string | null; ids: TabId[] }[] = [
   { title: "Android", ids: ["android", "native", "smali", "java", "split"] },
   { title: "Windows", ids: ["windows"] },
-  { title: "Araçlar", ids: ["hex", "diff", "console", "frida", "memscan"] },
+  { title: "Araçlar", ids: ["hex", "diff", "yara", "console", "frida", "memscan"] },
   { title: null, ids: ["history", "settings"] },
 ];
 const NAV_FLAT: TabId[] = NAV_GROUPS.flatMap((g) => g.ids);
@@ -296,6 +300,10 @@ function App() {
           <DiffView diff={diff} paths={diffPaths} />
         ) : (
           empty("İki APK'yı aynı anda buraya sürükleyin — dosya-düzeyi fark.")
+        );
+      case "yara":
+        return (
+          <YaraPanel path={apkPath ?? soPath ?? pePath ?? hexPath} />
         );
       case "split":
         return apkPath ? (

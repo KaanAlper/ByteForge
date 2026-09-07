@@ -29,6 +29,7 @@ pub mod runtime;
 pub mod sign;
 pub mod signature;
 pub mod smali;
+pub mod yara;
 pub mod smali_rules;
 pub mod tools;
 

@@ -4082,3 +4082,13 @@ input.mono, .il2cpp-search { font-family: var(--mono); }
 .ud-bytes { color: var(--text-2); }
 .ud-text { color: #cfe3ff; }
 .us-disasm-row.hl .ud-text { color: var(--accent-2); font-weight: 600; }
+
+/* Yara sonuçları */
+.yara-results { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.yara-hit {
+  background: var(--bg-elev-2); border: 1px solid var(--border-2);
+  border-radius: 11px; padding: 12px 14px;
+}
+.yara-hit-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.yara-rule { font-weight: 650; color: var(--text); font-size: 13.5px; }
+.yara-count { margin-left: auto; font-size: 12px; }

@@ -270,6 +270,13 @@ export type ForcedReturn =
   | { kind: "null" }
   | { kind: "max_int" };
 
+export interface YaraMatch {
+  rule: string;
+  tags: string[];
+  description: string;
+  hit_count: number;
+}
+
 export interface DisasmLine {
   address: number;
   bytes: string;

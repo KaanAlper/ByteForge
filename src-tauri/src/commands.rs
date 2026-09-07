@@ -844,3 +844,16 @@ pub fn disassemble_range(
     }
     Ok(byteforge_core::disasm::disassemble(&bytes[offset..end], base, &arch))
 }
+
+/// Bir ikiliyi (apk/so/exe/dll/dex…) gömülü Yara kural setiyle tarar
+/// (native Rust yara-x). Packer/kripto/anti-debug/root/emülatör/Frida imzaları.
+#[tauri::command]
+pub fn yara_scan(path: String) -> Result<Vec<byteforge_core::yara::YaraMatch>, ApiError> {
+    let canonical = validate_file(&path, APK_EXTS)
+        .or_else(|_| validate_file(&path, SO_EXTS))
+        .or_else(|_| validate_file(&path, PE_EXTS))?;
+    let bytes = std::fs::read(&canonical).map_err(|e| ApiError::Io {
+        message: e.to_string(),
+    })?;
+    byteforge_core::yara::scan(&bytes).map_err(|e| ApiError::ProcessFailed { message: e })
+}

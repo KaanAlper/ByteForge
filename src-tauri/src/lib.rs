@@ -189,6 +189,7 @@ pub fn run() {
             commands::apply_native_mod,
             commands::package_patched_so,
             commands::disassemble_range,
+            commands::yara_scan,
             commands::list_so_symbols,
             commands::so_segments,
             commands::rva_to_offset,
