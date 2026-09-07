@@ -5,6 +5,7 @@ import { ProfileCard } from "./ProfileCard";
 import { Il2CppPanel } from "./Il2CppPanel";
 import { ModMenuStudio } from "./ModMenuStudio";
 import { DeployPanel } from "./DeployPanel";
+import { SplitPanel } from "./SplitPanel";
 import type { AppProfile } from "../types";
 
 type StepId = "overview" | "patch" | "menu" | "deploy";
@@ -96,7 +97,14 @@ export function AndroidSection({
         {mounted.has("deploy") && (
           <div hidden={step !== "deploy"}>
             {apkPath ? (
-              <DeployPanel apkPath={apkPath} packageName={profile.manifest?.package ?? null} />
+              <>
+                <DeployPanel apkPath={apkPath} packageName={profile.manifest?.package ?? null} />
+                {/\.(xapk|apks)$/i.test(apkPath) && (
+                  <div style={{ marginTop: 16 }}>
+                    <SplitPanel apkPath={apkPath} />
+                  </div>
+                )}
+              </>
             ) : (
               <div className="panel-empty">
                 <Rocket size={30} />

@@ -13,7 +13,6 @@ import { JavaWorkbench } from "./components/JavaWorkbench";
 import { HexEditor } from "./components/HexEditor";
 import { Scratchpad } from "./components/Scratchpad";
 import { HistoryPanel } from "./components/HistoryPanel";
-import { SplitPanel } from "./components/SplitPanel";
 import { ConsolePanel } from "./components/ConsolePanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { PePanel } from "./components/PePanel";
@@ -28,7 +27,6 @@ import {
   Coffee,
   Hash,
   GitCompare,
-  Split,
   Terminal,
   History,
   Settings,
@@ -50,7 +48,6 @@ type TabId =
   | "hex"
   | "diff"
   | "yara"
-  | "split"
   | "console"
   | "frida"
   | "memscan"
@@ -66,7 +63,6 @@ const TABS: { id: TabId; icon: LucideIcon; label: string }[] = [
   { id: "hex", icon: Hash, label: "Hex" },
   { id: "diff", icon: GitCompare, label: "Diff" },
   { id: "yara", icon: ShieldAlert, label: "Yara" },
-  { id: "split", icon: Split, label: "Split" },
   { id: "console", icon: Terminal, label: "Konsol" },
   { id: "frida", icon: Zap, label: "Frida" },
   { id: "memscan", icon: MemoryStick, label: "Bellek" },
@@ -76,7 +72,7 @@ const TABS: { id: TabId; icon: LucideIcon; label: string }[] = [
 
 // Sidebar grupları — platforma/amaca göre mantıksal bölümleme.
 const NAV_GROUPS: { title: string | null; ids: TabId[] }[] = [
-  { title: "Android", ids: ["android", "native", "smali", "java", "split"] },
+  { title: "Android", ids: ["android", "native", "smali", "java"] },
   { title: "Windows", ids: ["windows"] },
   { title: "Araçlar", ids: ["hex", "diff", "yara", "console", "frida", "memscan"] },
   { title: null, ids: ["history", "settings"] },
@@ -304,12 +300,6 @@ function App() {
       case "yara":
         return (
           <YaraPanel path={apkPath ?? soPath ?? pePath ?? hexPath} />
-        );
-      case "split":
-        return apkPath ? (
-          <SplitPanel key={apkPath} apkPath={apkPath} />
-        ) : (
-          empty("Önce Profil sekmesinde bir XAPK/APKS yükleyin.")
         );
       case "console":
         return <ConsolePanel />;
