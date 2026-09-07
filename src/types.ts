@@ -277,6 +277,13 @@ export interface YaraMatch {
   hit_count: number;
 }
 
+export interface Decompiled {
+  signature: string;
+  pseudocode: string;
+  note: string;
+  complex: boolean;
+}
+
 export interface DisasmLine {
   address: number;
   bytes: string;

@@ -190,6 +190,7 @@ pub fn run() {
             commands::package_patched_so,
             commands::disassemble_range,
             commands::yara_scan,
+            commands::decompile_function,
             commands::list_so_symbols,
             commands::so_segments,
             commands::rva_to_offset,

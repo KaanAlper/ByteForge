@@ -857,3 +857,24 @@ pub fn yara_scan(path: String) -> Result<Vec<byteforge_core::yara::YaraMatch>, A
     })?;
     byteforge_core::yara::scan(&bytes).map_err(|e| ApiError::ProcessFailed { message: e })
 }
+
+/// Bir `.so`'daki fonksiyonu (ofsetten itibaren) native mini-decompiler ile
+/// C benzeri psödokoda çevirir (Ghidra-modeli, basit fonksiyonlar).
+#[tauri::command]
+pub fn decompile_function(
+    path: String,
+    offset: usize,
+    name: String,
+) -> Result<byteforge_core::decompile::Decompiled, ApiError> {
+    let canonical = validate_file(&path, SO_EXTS)?;
+    let bytes = std::fs::read(&canonical).map_err(|e| ApiError::Io {
+        message: e.to_string(),
+    })?;
+    let end = offset.saturating_add(160).min(bytes.len());
+    if offset >= bytes.len() {
+        return Err(ApiError::PatchOutOfBounds {
+            message: "ofset dosya dışında".into(),
+        });
+    }
+    Ok(byteforge_core::decompile::decompile_arm64(&bytes[offset..end], &name))
+}

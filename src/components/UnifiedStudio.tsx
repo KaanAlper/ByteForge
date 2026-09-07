@@ -17,6 +17,7 @@ import type {
   PatchTemplate,
   HexChunk,
   DisasmLine,
+  Decompiled,
   ResolvedMethod,
   ApiError,
 } from "../types";
@@ -104,6 +105,7 @@ export function UnifiedStudio({
   const [preview, setPreview] = useState<PatchPreview | null>(null);
   const [hex, setHex] = useState<HexChunk | null>(null);
   const [disasm, setDisasm] = useState<DisasmLine[] | null>(null);
+  const [decomp, setDecomp] = useState<Decompiled | null>(null);
   const [baseRva, setBaseRva] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -220,6 +222,17 @@ export function UnifiedStudio({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
+
+  // Psödokod (mini-decompiler) — ofset/fonksiyon değişince çöz.
+  useEffect(() => {
+    if (offset == null || !soPath || !selected) {
+      setDecomp(null);
+      return;
+    }
+    invoke<Decompiled>("decompile_function", { path: soPath, offset, name: selected.name })
+      .then(setDecomp)
+      .catch(() => setDecomp(null));
+  }, [offset, soPath, selected]);
 
   const resolveRva = async () => {
     if (!soPath || !selected) return;
@@ -649,6 +662,19 @@ export function UnifiedStudio({
                 </div>
                 {status && <p className="patch-ok">{status}</p>}
                 {error && <p className="error">Hata: {error}</p>}
+
+                {decomp && (
+                  <div className="us-decomp-card">
+                    <span className="field-label">
+                      Psödokod — mini-decompiler{decomp.complex ? " (kısmi)" : ""}
+                    </span>
+                    <pre className="us-decomp mono">
+{`${decomp.signature}
+${decomp.pseudocode}`}
+                    </pre>
+                    <span className="muted" style={{ fontSize: 12 }}>{decomp.note}</span>
+                  </div>
+                )}
 
                 <div className="us-hex-card">
                   <span className="field-label">

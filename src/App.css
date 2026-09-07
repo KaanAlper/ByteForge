@@ -4092,3 +4092,12 @@ input.mono, .il2cpp-search { font-family: var(--mono); }
 .yara-hit-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .yara-rule { font-weight: 650; color: var(--text); font-size: 13.5px; }
 .yara-count { margin-left: auto; font-size: 12px; }
+
+/* Psödokod kartı (mini-decompiler) */
+.us-decomp-card { margin-top: 14px; }
+.us-decomp {
+  margin: 7px 0 4px; padding: 12px 14px; border-radius: 10px;
+  background: #0b0f16; border: 1px solid var(--border);
+  font-family: var(--mono); font-size: 13px; line-height: 1.55;
+  color: #cfe3ff; white-space: pre-wrap; overflow-x: auto;
+}

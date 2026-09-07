@@ -69,6 +69,13 @@ impl Expr {
             Expr::Unknown(s) => format!("/*{s}*/").to_string(),
         }
     }
+    /// Dış parantezsiz üretim (return satırı için: "x != 0", "(x != 0)" değil).
+    fn emit_bare(&self) -> String {
+        match self {
+            Expr::Bin { op, l, r } => format!("{} {} {}", l.emit(), op, r.emit()),
+            _ => self.emit(),
+        }
+    }
     fn is_arg(&self) -> bool {
         matches!(self, Expr::Arg(_))
     }
@@ -104,6 +111,8 @@ pub fn decompile_arm64(code: &[u8], name: &str) -> Decompiled {
 
     // Son store (setter tespiti için): (base_expr, off, value).
     let mut last_store: Option<(Expr, u32, Expr)> = None;
+    // Bekleyen karşılaştırma (cmp → flags): sonraki cset/csel bunu kullanır.
+    let mut flags: Option<(Expr, Expr)> = None;
     let mut used_float_ret = false;
     let mut complex = false;
 
@@ -166,6 +175,38 @@ pub fn decompile_arm64(code: &[u8], name: &str) -> Decompiled {
                     set_gp(&mut gp, *d, v);
                 } else if let Operand::Register(_, d) = &ops[0] {
                     set_gp(&mut gp, *d, Expr::Unknown("or"));
+                }
+            }
+
+            // --- CMP (SUBS Xzr, a, b) → bekleyen karşılaştırma ---
+            Opcode::SUBS | Opcode::ADDS => {
+                if matches!(ops[0], Operand::Register(_, 31)) {
+                    let a = op_val(&ops[1], &gp, &simd, &read_gp, &read_simd);
+                    let b = op_val(&ops[2], &gp, &simd, &read_gp, &read_simd);
+                    flags = Some((a, b));
+                } else if let Operand::Register(_, d) = &ops[0] {
+                    let a = op_val(&ops[1], &gp, &simd, &read_gp, &read_simd);
+                    let b = op_val(&ops[2], &gp, &simd, &read_gp, &read_simd);
+                    let sym = if inst.opcode == Opcode::ADDS { "+" } else { "-" };
+                    set_gp(&mut gp, *d, fold_bin(sym, a, b));
+                }
+            }
+
+            // --- CSET/CSINC Wd, Wzr, Wzr, cc → bool = (koşul) ---
+            Opcode::CSINC => {
+                if let (Operand::Register(_, d), Operand::ConditionCode(cc)) = (&ops[0], &ops[3]) {
+                    // cset = csinc wd, wzr, wzr, invert(cc); gösterilen koşul = cc^1
+                    let e = match &flags {
+                        Some((l, r)) => Expr::Bin {
+                            op: cc_to_op(cc ^ 1),
+                            l: Box::new(l.clone()),
+                            r: Box::new(r.clone()),
+                        },
+                        None => Expr::Unknown("cond"),
+                    };
+                    set_gp(&mut gp, *d, e);
+                } else if let Operand::Register(_, d) = &ops[0] {
+                    set_gp(&mut gp, *d, Expr::Unknown("csel"));
                 }
             }
 
@@ -323,13 +364,18 @@ pub fn decompile_arm64(code: &[u8], name: &str) -> Decompiled {
         Some(Expr::Field { float: true, .. }) => ("float", "basit getter"),
         Some(Expr::Field { size: 1, .. }) if bool_hint => ("bool", "basit getter"),
         Some(Expr::Field { .. }) => ("int", "basit getter"),
+        Some(Expr::Bin { op, .. })
+            if matches!(*op, "==" | "!=" | "<" | ">" | "<=" | ">=") =>
+        {
+            ("bool", "karşılaştırma → bool")
+        }
         Some(Expr::Bin { .. }) if used_float_ret => ("float", "hesaplanmış float"),
         Some(Expr::Bin { .. }) => ("int", "hesaplanmış değer"),
         _ => ("int", "çözülemedi"),
     };
 
     let ret_str = match &ret_expr {
-        Some(e) => e.emit(),
+        Some(e) => e.emit_bare(),
         None => "0".into(),
     };
     // bool + sabit: true/false
@@ -378,6 +424,7 @@ fn op_val(
 ) -> Expr {
     match op {
         Operand::Register(_, n) => read_gp(gp, *n),
+        Operand::RegisterOrSP(_, n) => read_gp(gp, *n),
         Operand::SIMDRegister(_, n) => read_simd(simd, *n),
         Operand::Immediate(i) => Expr::Const(*i as i64),
         Operand::ImmShift(i, s) => Expr::Const((*i as i64) << *s),
@@ -396,6 +443,19 @@ fn fold_bin(op: &'static str, l: Expr, r: Expr) -> Expr {
         };
     }
     Expr::Bin { op, l: Box::new(l), r: Box::new(r) }
+}
+
+/// ARM koşul kodu → C operatörü (Ghidra'nın karşılaştırma-normalize kuralı).
+fn cc_to_op(cc: u8) -> &'static str {
+    match cc {
+        0 => "==",
+        1 => "!=",
+        2 | 10 | 5 => ">=",
+        3 | 11 | 4 => "<",
+        8 | 12 => ">",
+        9 | 13 => "<=",
+        _ => "!=",
+    }
 }
 
 #[cfg(test)]
