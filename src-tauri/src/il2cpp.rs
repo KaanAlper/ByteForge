@@ -243,6 +243,18 @@ pub fn il2cpp_resolve_search(
         else {
             continue;
         };
+        // Derleyici-üretimi gürültüsünü ele (lambda/backing field/ctor) — Hedefler
+        // bölümü gibi yalnız anlamlı metotlar.
+        if mn.starts_with('<')
+            || mn.contains(">b__")
+            || mn.contains(">c__")
+            || mn.contains(">d__")
+            || mn.contains("__BackingField")
+            || mn == ".ctor"
+            || mn == ".cctor"
+        {
+            continue;
+        }
         let full = format!("{ty}.{mn}");
         if !q.is_empty() && !full.to_lowercase().contains(&q) {
             continue;

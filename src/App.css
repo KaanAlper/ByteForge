@@ -4101,3 +4101,6 @@ input.mono, .il2cpp-search { font-family: var(--mono); }
   font-family: var(--mono); font-size: 13px; line-height: 1.55;
   color: #cfe3ff; white-space: pre-wrap; overflow-x: auto;
 }
+
+/* Android adım keep-alive: gizli adımlar DOM'da kalır ama görünmez */
+.android-step-body > [hidden] { display: none !important; }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScanSearch, Crosshair, Gamepad2, Rocket } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ProfileCard } from "./ProfileCard";
@@ -32,6 +32,13 @@ export function AndroidSection({
   const [step, setStep] = useState<StepId>("overview");
   const isIl2cpp = profile.runtime === "unity_il2cpp";
 
+  // Keep-alive: ziyaret edilen adımlar DOM'da kalır (gizlenir), unmount olmaz —
+  // böylece IL2CPP taraması, Mod Menü özellikleri, yapılan işlemler kaybolmaz.
+  const [mounted, setMounted] = useState<Set<StepId>>(() => new Set<StepId>(["overview"]));
+  useEffect(() => {
+    setMounted((m) => (m.has(step) ? m : new Set(m).add(step)));
+  }, [step]);
+
   return (
     <div className="android-section">
       <nav className="android-steps" aria-label="Android modlama adımları">
@@ -51,42 +58,53 @@ export function AndroidSection({
       </nav>
 
       <div className="android-step-body">
-        {step === "overview" && (
-          <ProfileCard profile={profile} apkPath={apkPath ?? undefined} />
+        {mounted.has("overview") && (
+          <div hidden={step !== "overview"}>
+            <ProfileCard profile={profile} apkPath={apkPath ?? undefined} />
+          </div>
         )}
 
-        {step === "patch" &&
-          (isIl2cpp && apkPath ? (
-            <Il2CppPanel apkPath={apkPath} />
-          ) : (
-            <div className="panel-empty">
-              <Crosshair size={30} />
-              <p>
-                Bu motor ({profile.runtime}) için native yama akışı yok. Java/Kotlin kodunu{" "}
-                <b>Smali</b> veya <b>Java</b> sekmesinde decompile edip yamalayın.
-              </p>
-            </div>
-          ))}
+        {mounted.has("patch") && (
+          <div hidden={step !== "patch"}>
+            {isIl2cpp && apkPath ? (
+              <Il2CppPanel apkPath={apkPath} />
+            ) : (
+              <div className="panel-empty">
+                <Crosshair size={30} />
+                <p>
+                  Bu motor ({profile.runtime}) için native yama akışı yok. Java/Kotlin kodunu{" "}
+                  <b>Smali</b> veya <b>Java</b> sekmesinde decompile edip yamalayın.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
-        {step === "menu" &&
-          (apkPath ? (
-            <ModMenuStudio key={apkPath} apkPath={apkPath} runtime={profile.runtime} />
-          ) : (
-            <div className="panel-empty">
-              <Gamepad2 size={30} />
-              <p>Önce bir APK yükleyin — mod menüsü buraya enjekte edilir.</p>
-            </div>
-          ))}
+        {mounted.has("menu") && (
+          <div hidden={step !== "menu"}>
+            {apkPath ? (
+              <ModMenuStudio key={apkPath} apkPath={apkPath} runtime={profile.runtime} />
+            ) : (
+              <div className="panel-empty">
+                <Gamepad2 size={30} />
+                <p>Önce bir APK yükleyin — mod menüsü buraya enjekte edilir.</p>
+              </div>
+            )}
+          </div>
+        )}
 
-        {step === "deploy" &&
-          (apkPath ? (
-            <DeployPanel apkPath={apkPath} packageName={profile.manifest?.package ?? null} />
-          ) : (
-            <div className="panel-empty">
-              <Rocket size={30} />
-              <p>Önce bir APK yükleyin.</p>
-            </div>
-          ))}
+        {mounted.has("deploy") && (
+          <div hidden={step !== "deploy"}>
+            {apkPath ? (
+              <DeployPanel apkPath={apkPath} packageName={profile.manifest?.package ?? null} />
+            ) : (
+              <div className="panel-empty">
+                <Rocket size={30} />
+                <p>Önce bir APK yükleyin.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
