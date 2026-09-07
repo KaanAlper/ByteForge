@@ -4104,3 +4104,8 @@ input.mono, .il2cpp-search { font-family: var(--mono); }
 
 /* Android adım keep-alive: gizli adımlar DOM'da kalır ama görünmez */
 .android-step-body > [hidden] { display: none !important; }
+
+/* Uzun değerler (activity/paket adı) grid'i taşırmasın — hücre küçülebilsin, chip kırılabilsin */
+.field { min-width: 0; }
+.field-value { min-width: 0; }
+.field-value .chip { max-width: 100%; overflow-wrap: anywhere; }
