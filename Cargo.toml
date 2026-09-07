@@ -1,0 +1,14 @@
+[workspace]
+members = ["src-tauri", "crates/byteforge-core"]
+resolver = "2"
+
+# Release profili — hızlı build/perf dengesi (workspace kökünde tanımlanmalı).
+# lto="thin" + codegen-units=16: link aşaması ~3-4x hızlanır, binary ~1-2 MB
+# büyür, çalışma performansı neredeyse aynı. Maksimum küçük binary için tekrar
+# lto=true + codegen-units=1 yapılabilir (ama link çok yavaşlar).
+[profile.release]
+codegen-units = 16
+lto = "thin"
+opt-level = 3
+panic = "abort"
+strip = true
