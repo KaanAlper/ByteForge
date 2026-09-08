@@ -137,7 +137,10 @@ impl ProcessMemory for MacMem {
         loop {
             let mut size: u64 = 0;
             let mut info: vm_region_basic_info_data_64_t = unsafe { std::mem::zeroed() };
-            let mut count = mach2::vm_region::VM_REGION_BASIC_INFO_COUNT_64;
+            // mach2 0.4'te COUNT sabiti yok: info struct'ın 32-bit sözcük sayısı.
+            let mut count: mach2::message::mach_msg_type_number_t =
+                (std::mem::size_of::<vm_region_basic_info_data_64_t>() / std::mem::size_of::<i32>())
+                    as mach2::message::mach_msg_type_number_t;
             let mut object_name: mach_port_t = 0;
             let kr = unsafe {
                 mach_vm_region(

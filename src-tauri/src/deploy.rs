@@ -44,11 +44,17 @@ pub(crate) fn run(bin: &str, args: &[String]) -> Result<String, ApiError> {
     Ok(stdout.into_owned())
 }
 
-/// `~/.config/byteforge/debug.keystore` — yoksa keytool ile bir kez üretir.
+/// Debug keystore'u bulur veya oluşturur:
+/// 1. Varsa `~/.android/debug.keystore` öncelikli kullanılır.
+/// 2. Yoksa `~/.config/byteforge/debug.keystore` kullanılır/üretilir.
 fn ensure_debug_keystore() -> Result<PathBuf, ApiError> {
     let home = std::env::var("HOME").map_err(|_| ApiError::ProcessFailed {
         message: "HOME ortam değişkeni tanımlı değil".into(),
     })?;
+    let android_ks = Path::new(&home).join(".android").join("debug.keystore");
+    if android_ks.is_file() {
+        return Ok(android_ks);
+    }
     let dir = Path::new(&home).join(".config").join("byteforge");
     std::fs::create_dir_all(&dir).map_err(|e| ApiError::Io {
         message: e.to_string(),
