@@ -221,11 +221,58 @@ export interface ProcInfo {
   name: string;
 }
 
-export interface ScanResult {
-  addresses: number[];
+export type Compare =
+  | "exact"
+  | "not_equal"
+  | "greater"
+  | "less"
+  | "between"
+  | "unknown"
+  | "increased"
+  | "decreased"
+  | "changed"
+  | "unchanged"
+  | "increased_by"
+  | "decreased_by";
+
+export interface AddrValue {
+  address: number;
+  value: string;
+}
+
+export interface ScanSummary {
+  session: number;
   total: number;
   truncated: boolean;
   scanned_regions: number;
+  preview: AddrValue[];
+}
+
+export interface FrozenInfo {
+  pid: number;
+  address: number;
+  value: string;
+  label: string;
+  ty: MemValueType;
+}
+
+export interface PointerChain {
+  base_module: string;
+  base_address: number;
+  base_offset: number;
+  offsets: number[];
+  depth: number;
+}
+
+/** Kayıtlı adres tablosundaki tek giriş (frontend). */
+export interface SavedEntry {
+  id: string;
+  pid: number;
+  address: number;
+  ty: MemValueType;
+  label: string;
+  value: string;
+  frozen: boolean;
 }
 
 export interface Finding {

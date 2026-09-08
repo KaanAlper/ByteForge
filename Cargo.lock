@@ -501,12 +501,15 @@ name = "byteforge"
 version = "0.1.0"
 dependencies = [
  "byteforge-core",
+ "libc",
+ "mach2",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
+ "windows-sys 0.59.0",
  "zip 2.4.2",
 ]
 

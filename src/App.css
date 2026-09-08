@@ -4109,3 +4109,135 @@ input.mono, .il2cpp-search { font-family: var(--mono); }
 .field { min-width: 0; }
 .field-value { min-width: 0; }
 .field-value .chip { max-width: 100%; overflow-wrap: anywhere; }
+
+/* ===== Bellek Tarayıcı — kayıtlı tablo + dondurma + pointer scan ===== */
+.saved-table {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.saved-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.saved-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto 120px auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-width: 0;
+}
+.saved-row.frozen {
+  border-color: #2f6d8f;
+  background: rgba(47, 109, 143, 0.12);
+}
+.freeze-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 5px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+}
+.freeze-btn.on {
+  color: #6fc3e8;
+  border-color: #2f6d8f;
+  background: rgba(47, 109, 143, 0.2);
+}
+.saved-label {
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 7px;
+  color: var(--fg);
+  font-size: 12px;
+}
+.saved-addr {
+  color: var(--accent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.saved-ty {
+  font-size: 11px;
+}
+.saved-live {
+  font-size: 12px;
+  color: #8fe0a0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.saved-write {
+  min-width: 0;
+  width: 90px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 7px;
+  color: var(--fg);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.saved-del {
+  display: inline-flex;
+  padding: 3px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.saved-del:hover {
+  color: #e0736f;
+}
+
+.ptr-scan {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.ptr-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--fg);
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.ptr-body {
+  margin-top: 10px;
+}
+.ptr-results {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ptr-chain {
+  font-size: 12px;
+  padding: 4px 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.ptr-chain b {
+  color: var(--accent);
+}
+.ptr-off {
+  color: var(--muted);
+}

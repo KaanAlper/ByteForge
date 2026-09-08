@@ -5,7 +5,10 @@ mod deploy;
 mod history;
 mod il2cpp;
 mod jadx;
+mod mem;
+mod freeze;
 mod memscan;
+mod pointerscan;
 mod modmenu;
 mod splits;
 mod stream;
@@ -263,11 +266,18 @@ pub fn run() {
             jadx::jadx_cache_status,
             modmenu::inject_mod_menu,
             memscan::list_processes,
-            memscan::scan_process,
-            memscan::refine_scan,
+            memscan::scan_new,
+            memscan::scan_next,
+            memscan::scan_read,
+            memscan::scan_clear,
             memscan::write_memory,
             memscan::read_memory,
             memscan::ptrace_scope,
+            freeze::freeze_add,
+            freeze::freeze_remove,
+            freeze::freeze_list,
+            freeze::freeze_clear,
+            pointerscan::pointer_scan,
             jadx::search_java,
             jadx::read_java,
             console::read_console,
