@@ -25,3 +25,7 @@ dist-ssr
 
 # Rust workspace build output
 /target
+
+# Updater imzalama anahtarları — asla commit etme
+*.key
+.tauri/

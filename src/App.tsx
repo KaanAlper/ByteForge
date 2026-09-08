@@ -15,6 +15,7 @@ import { Scratchpad } from "./components/Scratchpad";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { ConsolePanel } from "./components/ConsolePanel";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { Updater } from "./components/Updater";
 import { PePanel } from "./components/PePanel";
 import { FridaPanel } from "./components/FridaPanel";
 import { MemScanner } from "./components/MemScanner";
@@ -370,6 +371,7 @@ function App() {
               );
             })}
           </nav>
+          <Updater />
         </aside>
 
         <div className="main">

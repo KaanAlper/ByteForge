@@ -4241,3 +4241,105 @@ input.mono, .il2cpp-search { font-family: var(--mono); }
 .ptr-off {
   color: var(--muted);
 }
+
+/* ===== Uygulama içi güncelleme ===== */
+.updater-btn {
+  position: relative;
+  margin-top: auto;
+}
+.updater-ver {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.updater-dot {
+  position: absolute;
+  top: 9px;
+  left: 26px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6fc3e8;
+  box-shadow: 0 0 0 2px var(--panel);
+}
+.updater-btn.has-update .nav-icon {
+  color: #6fc3e8;
+}
+.spin {
+  animation: updater-spin 0.9s linear infinite;
+}
+@keyframes updater-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+.updater-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 6, 12, 0.62);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.updater-card {
+  width: min(460px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.updater-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.updater-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.updater-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+}
+.updater-notes {
+  max-height: 180px;
+  overflow: auto;
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+}
+.updater-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.updater-bar {
+  height: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.updater-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2f6d8f, #6fc3e8);
+  transition: width 120ms linear;
+}
