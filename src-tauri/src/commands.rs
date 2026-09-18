@@ -878,3 +878,22 @@ pub fn decompile_function(
     }
     Ok(byteforge_core::decompile::decompile_arm64(&bytes[offset..end], &name))
 }
+
+/// Sistem dosya seçicisini açar (.exe, .dll, .apk, .xapk, .apks, .so filtreli).
+#[tauri::command]
+pub async fn pick_file() -> Result<Option<String>, String> {
+    let file = rfd::AsyncFileDialog::new()
+        .set_title("Analiz Edilecek Dosyayı Seçin")
+        .add_filter(
+            "Tüm Desteklenenler (*.exe, *.dll, *.apk, *.xapk, *.apks, *.so)",
+            &["exe", "dll", "apk", "xapk", "apks", "so"],
+        )
+        .add_filter("Windows Yürütülebilir (*.exe, *.dll)", &["exe", "dll"])
+        .add_filter("Android Paketleri (*.apk, *.xapk, *.apks)", &["apk", "xapk", "apks"])
+        .add_filter("Native Kütüphaneler (*.so)", &["so"])
+        .add_filter("Tüm Dosyalar (*.*)", &["*"])
+        .pick_file()
+        .await;
+
+    Ok(file.map(|f| f.path().to_string_lossy().to_string()))
+}

@@ -23,7 +23,20 @@ pub fn list_processes() -> io::Result<Vec<ProcSummary>> {
         let Ok(comm) = std::fs::read_to_string(format!("/proc/{pid}/comm")) else {
             continue;
         };
-        let comm = comm.trim().to_string();
+        let mut comm = comm.trim().to_string();
+        
+        // Linux comm limit is 15 chars. If it's exactly 15, read cmdline for the full binary name
+        if comm.len() == 15 {
+            if let Ok(cmd) = std::fs::read_to_string(format!("/proc/{pid}/cmdline")) {
+                if let Some(first) = cmd.split('\0').next() {
+                    if let Some(basename) = first.split('/').last() {
+                        if !basename.is_empty() && basename.starts_with(&comm[0..10]) {
+                            comm = basename.to_string();
+                        }
+                    }
+                }
+            }
+        }
         if !comm.is_empty() {
             out.push(ProcSummary { pid, name: comm });
         }

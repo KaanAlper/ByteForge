@@ -13,13 +13,18 @@ import { JavaWorkbench } from "./components/JavaWorkbench";
 import { HexEditor } from "./components/HexEditor";
 import { Scratchpad } from "./components/Scratchpad";
 import { HistoryPanel } from "./components/HistoryPanel";
+import { NetworkSniffer } from "./components/NetworkSniffer";
+import { MockServerPanel } from "./components/MockServerPanel";
+import { PayloadGenerator } from "./components/PayloadGenerator";
 import { ConsolePanel } from "./components/ConsolePanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Updater } from "./components/Updater";
 import { PePanel } from "./components/PePanel";
 import { FridaPanel } from "./components/FridaPanel";
 import { MemScanner } from "./components/MemScanner";
+import { DashboardPanel } from "./components/DashboardPanel";
 import {
+  LayoutDashboard,
   Smartphone,
   ShieldAlert,
   Binary,
@@ -36,11 +41,15 @@ import {
   Hexagon,
   Zap,
   MemoryStick,
+  Network,
+  Server,
+  Anchor,
   type LucideIcon,
 } from "lucide-react";
 import "./App.css";
 
 type TabId =
+  | "dashboard"
   | "android"
   | "native"
   | "windows"
@@ -52,10 +61,14 @@ type TabId =
   | "console"
   | "frida"
   | "memscan"
+  | "network"
+  | "mock"
+  | "payload"
   | "history"
   | "settings";
 
 const TABS: { id: TabId; icon: LucideIcon; label: string }[] = [
+  { id: "dashboard", icon: LayoutDashboard, label: "Başlangıç" },
   { id: "android", icon: Smartphone, label: "Android" },
   { id: "native", icon: Binary, label: "Native (.so)" },
   { id: "windows", icon: AppWindow, label: "Windows" },
@@ -67,15 +80,19 @@ const TABS: { id: TabId; icon: LucideIcon; label: string }[] = [
   { id: "console", icon: Terminal, label: "Konsol" },
   { id: "frida", icon: Zap, label: "Frida" },
   { id: "memscan", icon: MemoryStick, label: "Bellek" },
+  { id: "network", icon: Network, label: "Ağ (Sniffer)" },
+  { id: "mock", icon: Server, label: "Sahte Sunucu" },
+  { id: "payload", icon: Anchor, label: "Kanca Üretici" },
   { id: "history", icon: History, label: "Geçmiş" },
   { id: "settings", icon: Settings, label: "Ayarlar" },
 ];
 
 // Sidebar grupları — platforma/amaca göre mantıksal bölümleme.
 const NAV_GROUPS: { title: string | null; ids: TabId[] }[] = [
+  { title: null, ids: ["dashboard"] },
   { title: "Android", ids: ["android", "native", "smali", "java"] },
   { title: "Windows", ids: ["windows"] },
-  { title: "Araçlar", ids: ["hex", "diff", "yara", "console", "frida", "memscan"] },
+  { title: "Araçlar", ids: ["hex", "diff", "yara", "console", "frida", "memscan", "network", "mock", "payload"] },
   { title: null, ids: ["history", "settings"] },
 ];
 const NAV_FLAT: TabId[] = NAV_GROUPS.flatMap((g) => g.ids);
@@ -84,11 +101,22 @@ const tabDef = (id: TabId) => TABS.find((t) => t.id === id)!;
 const baseName = (p: string) => p.split(/[/\\]/).pop() ?? p;
 const PE_RE = /\.(exe|dll|sys|ocx|efi)$/i;
 
+function useWindowSize() {
+  const [size, setSize] = useState([window.innerWidth, window.innerHeight]);
+  useEffect(() => {
+    const handleResize = () => setSize([window.innerWidth, window.innerHeight]);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return size;
+}
+
 function App() {
-  const [tab, setTab] = useState<TabId>("android");
+  const [windowWidth, windowHeight] = useWindowSize();
+  const [tab, setTab] = useState<TabId>("dashboard");
   // Ziyaret edilen sekmeler bellekte tutulur (keep-alive): sekme değişince
   // önceki sekmenin durumu (decompile/arama/açık editör) sıfırlanmaz.
-  const [mounted, setMounted] = useState<Set<TabId>>(() => new Set<TabId>(["android"]));
+  const [mounted, setMounted] = useState<Set<TabId>>(() => new Set<TabId>(["dashboard"]));
   const [apkPath, setApkPath] = useState<string | null>(null);
   const [profile, setProfile] = useState<AppProfile | null>(null);
   const [soPath, setSoPath] = useState<string | null>(null);
@@ -135,6 +163,17 @@ function App() {
       setError((e as Partial<ApiError>)?.message ?? String(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const pickAndOpenFile = async () => {
+    try {
+      const selected = await invoke<string | null>("pick_file");
+      if (selected) {
+        handleFile(selected);
+      }
+    } catch (e) {
+      setError((e as Partial<ApiError>)?.message ?? String(e));
     }
   };
 
@@ -235,9 +274,15 @@ function App() {
     };
   }, [tab]);
 
-  // IL2CPP panelinden çağrılır: libil2cpp.so'yu Native sekmesine yükleyip
-  // (isteğe bağlı) tıklanan sembol adını arama olarak açar — elle sürükleme yok.
-  const loadedName = apkPath ? baseName(apkPath) : soPath ? baseName(soPath) : null;
+  const activeFile = pePath
+    ? { name: baseName(pePath), type: "pe" as const, path: pePath }
+    : apkPath
+    ? { name: baseName(apkPath), type: "apk" as const, path: apkPath }
+    : soPath
+    ? { name: baseName(soPath), type: "so" as const, path: soPath }
+    : null;
+
+  const loadedName = activeFile ? activeFile.name : null;
 
   const empty = (msg: string) => <div className="panel-empty">{msg}</div>;
 
@@ -246,6 +291,16 @@ function App() {
   // durum korunur, YENİ dosya yüklenince taze başlar.
   const renderTab = (id: TabId) => {
     switch (id) {
+      case "dashboard":
+        return (
+          <DashboardPanel
+            onPickFile={pickAndOpenFile}
+            onNavigate={(t) => setTab(t as TabId)}
+            activeFile={activeFile}
+            busy={busy}
+            dragging={dragging}
+          />
+        );
       case "android":
         return profile ? (
           <AndroidSection profile={profile} apkPath={apkPath} />
@@ -308,6 +363,12 @@ function App() {
         return <FridaPanel />;
       case "memscan":
         return <MemScanner />;
+      case "network":
+        return <NetworkSniffer />;
+      case "mock":
+        return <MockServerPanel />;
+      case "payload":
+        return <PayloadGenerator />;
       case "history":
         return <HistoryPanel />;
       case "settings":
@@ -376,7 +437,19 @@ function App() {
 
         <div className="main">
           <header className="topbar">
-            <span className="topbar-title">{TABS.find((t) => t.id === tab)?.label}</span>
+            <div className="topbar-left">
+              <span className="topbar-title">{TABS.find((t) => t.id === tab)?.label}</span>
+              <button
+                type="button"
+                className="topbar-open-btn"
+                onClick={pickAndOpenFile}
+                disabled={busy}
+                title="Dosya Seç (.exe, .dll, .apk, .so)"
+              >
+                <FolderOpen size={13} />
+                <span>Dosya Aç</span>
+              </button>
+            </div>
             <span className="topbar-file">
               {busy ? (
                 <>
@@ -418,6 +491,21 @@ function App() {
       </div>
 
       <Scratchpad />
+      {windowWidth < 980 || windowHeight < 600 ? (
+        <div className="ms-screen-warning">
+          <svg className="ms-screen-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+            <path d="M15 8l2 2-2 2"></path>
+            <path d="M9 12l-2-2 2-2"></path>
+          </svg>
+          <div className="ms-screen-title">Lütfen Ekranı Büyütün</div>
+          <div className="ms-screen-desc">
+            ByteForge gelişmiş bir tersine mühendislik ve hafıza tarama uygulamasıdır. Verimli kullanabilmek için pencereyi büyütmeniz veya tam ekrana geçmeniz gerekiyor.
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

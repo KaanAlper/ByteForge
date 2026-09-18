@@ -8,6 +8,10 @@ mod jadx;
 mod mem;
 mod freeze;
 mod memscan;
+mod icons;
+mod network;
+mod mock_server;
+mod payload;
 mod pointerscan;
 mod modmenu;
 mod splits;
@@ -224,6 +228,7 @@ pub fn run() {
             commands::deobfuscate_string,
             commands::frida_scripts,
             commands::frida_tracer,
+            commands::pick_file,
             deploy::resign_apk,
             deploy::resign_apk_with_mods,
             deploy::list_adb_devices,
@@ -264,6 +269,15 @@ pub fn run() {
             il2cpp::il2cpp_rank_resolved,
             il2cpp::il2cpp_lookup,
             jadx::jadx_decompile,
+            network::is_root,
+            network::start_sniffer,
+            network::stop_sniffer,
+            network::clear_sniffer,
+            mock_server::start_mock_server,
+            mock_server::stop_mock_server,
+            payload::generate_payload,
+            payload::compile_payload,
+            payload::launch_with_hook,
             jadx::jadx_decompile_stream,
             jadx::jadx_cache_status,
             modmenu::inject_mod_menu,

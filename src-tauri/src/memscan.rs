@@ -28,6 +28,7 @@ const CHUNK: usize = 4 * 1024 * 1024;
 pub struct ProcInfo {
     pub pid: u32,
     pub name: String,
+    pub icon: Option<String>,
 }
 
 /// Çalışan süreçleri listeler (platforma göre).
@@ -40,6 +41,7 @@ pub fn list_processes() -> Result<Vec<ProcInfo>, ApiError> {
         .into_iter()
         .map(|p| ProcInfo {
             pid: p.pid,
+            icon: crate::icons::get_icon_for_process(&p.name),
             name: p.name,
         })
         .collect())

@@ -219,6 +219,7 @@ export type MemValueType = "i32" | "i64" | "f32" | "f64" | "u8";
 export interface ProcInfo {
   pid: number;
   name: string;
+  icon?: string | null;
 }
 
 export type Compare =

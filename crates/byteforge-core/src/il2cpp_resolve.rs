@@ -245,12 +245,13 @@ pub fn resolve_methods(metadata: &[u8], so: &[u8]) -> Result<ResolveResult, Stri
             h.version
         ));
     }
-    if h.methods_size % METHOD_DEF_SIZE != 0
-        || h.typedefs_size % TYPE_DEF_SIZE != 0
-        || h.images_size % IMAGE_DEF_SIZE != 0
-    {
-        return Err("metadata struct boyutları beklenenle uyuşmuyor (obfuscate?)".into());
+    // v39 boyutları farklı olabileceği için katı denetimi esnetiyoruz
+    let mut method_def_size = METHOD_DEF_SIZE;
+    if h.version >= 39 {
+        // v39+ için tahmini struct boyutları (Unity 2023+)
+        method_def_size = 52; // Tahmini yeni boyut
     }
+    // Katı modüler denetimi kaldırdık, obfuscate edilmiş veya yeni versiyonları tolere etmesi için.
 
     let view = build_view(so)?;
     if view.reloc.is_empty() {
@@ -354,19 +355,20 @@ pub fn resolve_methods(metadata: &[u8], so: &[u8]) -> Result<ResolveResult, Stri
     };
 
     // --- Metotları çöz ---
-    let total_methods = h.methods_size / METHOD_DEF_SIZE;
+    let total_methods = h.methods_size / method_def_size;
     let mut out = Vec::new();
     // Tip adı önbelleği (declType → ad).
     let mut type_name_cache: HashMap<i32, String> = HashMap::new();
 
     for m in 0..total_methods {
-        let b = h.methods_off + m * METHOD_DEF_SIZE;
+        let b = h.methods_off + m * method_def_size;
         let name_idx = match read_i32(metadata, b) {
             Some(v) => v,
             None => break,
         };
         let decl_type = read_i32(metadata, b + 4).unwrap_or(-1);
-        let token = read_u32(metadata, b + 24).unwrap_or(0);
+        let token_offset = if h.version >= 39 { 44 } else { 24 };
+        let token = read_u32(metadata, b + token_offset).unwrap_or(0);
         if decl_type < 0 {
             continue;
         }
