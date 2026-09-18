@@ -1,6 +1,6 @@
 use std::fs;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter};
@@ -56,7 +56,7 @@ pub fn start_mock_server(app: AppHandle, domain: String, port: u16, response: St
     {
         if let Ok(mut file) = fs::OpenOptions::new().append(true).open("/etc/hosts") {
             let entry = format!("127.0.0.1 {} # BYTEFORGE MOCK\n", domain);
-            if let Err(_) = file.write_all(entry.as_bytes()) {
+            if file.write_all(entry.as_bytes()).is_err() {
                 return Err("/etc/hosts dosyasına yazılamadı!".to_string());
             }
         } else {

@@ -33,7 +33,8 @@ pub fn get_icon_for_process(name: &str) -> Option<String> {
     let result = path.and_then(|p| {
         // Read file and convert to base64
         if let Ok(bytes) = fs::read(&p) {
-            let b64 = base64::encode(&bytes);
+            use base64::{Engine as _, engine::general_purpose};
+            let b64 = general_purpose::STANDARD.encode(&bytes);
             let ext = p.extension().unwrap_or_default().to_string_lossy();
             let mime = if ext == "svg" { "image/svg+xml" } else { "image/png" };
             Some(format!("data:{};base64,{}", mime, b64))
@@ -65,7 +66,7 @@ fn build_desktop_map() -> HashMap<String, String> {
                             let raw = line.trim_start_matches("Exec=");
                             // Extract just the binary name
                             if let Some(bin) = raw.split_whitespace().next() {
-                                if let Some(base) = bin.split('/').last() {
+                                if let Some(base) = bin.split('/').next_back() {
                                     exec = base.to_string();
                                 }
                             }

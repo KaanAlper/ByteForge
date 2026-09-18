@@ -29,7 +29,7 @@ pub fn list_processes() -> io::Result<Vec<ProcSummary>> {
         if comm.len() == 15 {
             if let Ok(cmd) = std::fs::read_to_string(format!("/proc/{pid}/cmdline")) {
                 if let Some(first) = cmd.split('\0').next() {
-                    if let Some(basename) = first.split('/').last() {
+                    if let Some(basename) = first.split('/').next_back() {
                         if !basename.is_empty() && basename.starts_with(&comm[0..10]) {
                             comm = basename.to_string();
                         }
