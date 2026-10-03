@@ -25,6 +25,22 @@ curl -fsSL https://raw.githubusercontent.com/KaanAlper/ByteForge/master/install.
 
 En son sürümün taşınabilir `.AppImage`'ını `~/.local/bin/byteforge` olarak kurar; `sudo` istemez. Kurulum dizini `BYTEFORGE_BIN` ile değiştirilebilir. Paket yöneticisi tercih ediyorsan `.deb` / `.rpm` dosyalarını [Releases](https://github.com/KaanAlper/ByteForge/releases/latest) sayfasından indir.
 
+### Windows — tek satır
+
+PowerShell'e yapıştır (yönetici gerekmez):
+
+```powershell
+irm https://raw.githubusercontent.com/KaanAlper/ByteForge/master/install.ps1 | iex
+```
+
+Son sürümün `byteforge_x.y.z_x64-setup.exe` kurulumunu ilerleme çubuğuyla indirir, SHA-256'sını doğrular ve sessizce çalıştırır (kullanıcıya kurulur, `%LOCALAPPDATA%\byteforge`); Başlat menüsü kısayolunu ve **Ayarlar > Uygulamalar** kaydını kurulum programı ekler. Aynı komut günceller. Kaldırmak için Ayarlar > Uygulamalar > byteforge, ya da:
+
+```powershell
+$env:BYTEFORGE_UNINSTALL = 1; irm https://raw.githubusercontent.com/KaanAlper/ByteForge/master/install.ps1 | iex
+```
+
+> **Not:** Repo şu an gizli (private) olduğu için `raw.githubusercontent.com` ve GitHub API'si anonim istekleri reddeder; tek satır repo herkese açılınca çalışır. O zamana kadar kurulum dosyasını indirip `$env:BYTEFORGE_SOURCE = 'C:\yol\byteforge_x.y.z_x64-setup.exe'` ile `install.ps1`'i yerelden çalıştırabilirsin.
+
 ### İndirilebilir paketler
 
 | Platform | Paket | Not |
@@ -106,11 +122,9 @@ npm run build
 
 ### Sürüm çıkarma
 
-`v*` etiketi push'lamak yeterli — GitHub Actions Windows, macOS (arm64 + x64) ve Linux paketlerini derler, imzalar ve Release'e yükler; `latest.json` uygulama içi güncelleyiciyi besler.
+**Actions > Release > Run workflow** — sürüm numarası son sürümden bu yana gelen commit'lerden hesaplanır (semantic versioning: `feat:` → minor, `fix:` ve diğerleri → patch, türden sonra `!` ya da breaking-change dipnotu → major; `bump` ile elle de seçilir) ve `package.json` / `tauri.conf.json` / `Cargo.toml`'lara damgalanır (`pwsh ./tools/set-version.ps1 -Version x.y.z`). GitHub Actions Windows, macOS (arm64 + x64) ve Linux paketlerini derler, imzalar ve tek Release'e yükler; `latest.json` uygulama içi güncelleyiciyi besler. Kullanılmış bir `vX.Y.Z` etiketi asla yeniden kullanılmaz.
 
-```sh
-git tag v0.2.0 && git push origin v0.2.0
-```
+`install.ps1`'in gerçek Windows'ta kur / güncelle / kaldır denemesi: **Actions > Windows installer** (install.ps1 değişince kendiliğinden de çalışır).
 
 ---
 

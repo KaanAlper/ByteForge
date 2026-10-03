@@ -1,0 +1,67 @@
+name: Windows installer
+
+# install.ps1'i gerçek Windows'ta dener: NSIS kurulumunu derler, sonra kur / güncelle / kaldır.
+# Dakika harcamasın diye yalnız install.ps1 ya da bu dosya değişince ve elle tetiklenince çalışır.
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - install.ps1
+      - .github/workflows/windows-installer.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install-test:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sürümü damgala
+        shell: pwsh
+        run: ./tools/set-version.ps1 -Version 0.0.${{ github.run_number }}
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: NSIS kurulumunu derle
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          npx tauri build --bundles nsis
+          if ($LASTEXITCODE) { throw "tauri build exit $LASTEXITCODE" }
+
+      - name: install.ps1 - kur, güncelle, kaldır
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ver = '0.0.${{ github.run_number }}'
+          $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\byteforge'
+          $env:BYTEFORGE_SOURCE = (Get-ChildItem target/release/bundle/nsis -Filter "byteforge_${ver}_x64-setup.exe").FullName
+          if (-not $env:BYTEFORGE_SOURCE) { throw 'setup exe yok' }
+          $env:BYTEFORGE_DEFAULTS = '1'
+          ./install.ps1
+          $p = Get-ItemProperty $key
+          if ($p.DisplayVersion -ne $ver) { throw "Uygulamalar'da yanlış sürüm: $($p.DisplayVersion)" }
+          $dir = $p.InstallLocation.Trim('"')
+          if (-not (Test-Path "$dir\byteforge.exe")) { throw "kurulmadı: $dir" }
+          ./install.ps1
+          if (-not (Test-Path "$dir\byteforge.exe")) { throw 'yeniden kurulum bozuldu' }
+          $env:BYTEFORGE_UNINSTALL = '1'
+          ./install.ps1
+          Start-Sleep -Seconds 3
+          if (Test-Path $key) { throw "kaldırma Uygulamalar kaydını bıraktı" }
+          if (Test-Path "$dir\byteforge.exe") { throw 'kaldırma dosyaları bıraktı' }
+          'kur / güncelle / kaldır tamam'
