@@ -7,6 +7,7 @@ on:
     branches: [master, main]
     paths:
       - install.ps1
+      - installer/**
       - .github/workflows/windows-installer.yml
   workflow_dispatch:
 
@@ -14,6 +15,26 @@ permissions:
   contents: read
 
 jobs:
+  setup:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # The windowed setup app (installer/gui): builds both exes, draws every page and proves it starts and talks to install.ps1
+      - name: Setup app - build x64 / x86, draw the pages, run install.ps1's uninstall through the window
+        shell: pwsh
+        run: |
+          ./installer/gui/build.ps1 -Out dist -Shots -Smoke uninstall
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ByteForge-Setup
+          path: |
+            dist/ByteForge-Setup-*.exe
+            dist/shots/*.png
+            dist/smoke/*
+
   install-test:
     runs-on: windows-latest
     timeout-minutes: 60

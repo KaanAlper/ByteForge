@@ -33,6 +33,8 @@ PowerShell'e yapıştır (yönetici gerekmez):
 irm https://raw.githubusercontent.com/KaanAlper/ByteForge/master/install.ps1 | iex
 ```
 
+**Pencereli kurulum:** [**ByteForge-Setup-x64.exe**](https://github.com/KaanAlper/ByteForge/releases/latest/download/ByteForge-Setup-x64.exe) (32-bit Windows için [ByteForge-Setup-x86.exe](https://github.com/KaanAlper/ByteForge/releases/latest/download/ByteForge-Setup-x86.exe)) — aynı kurulumu düğmelerle yapar: dil seçimi, ilerleme, iptal edince geri alma; kuruluysa **Güncelle / Onar / Kaldır** sunar.
+
 Son sürümün `byteforge_x.y.z_x64-setup.exe` kurulumunu ilerleme çubuğuyla indirir, SHA-256'sını doğrular ve sessizce çalıştırır (kullanıcıya kurulur, `%LOCALAPPDATA%\byteforge`); Başlat menüsü kısayolunu ve **Ayarlar > Uygulamalar** kaydını kurulum programı ekler. Aynı komut günceller. Kaldırmak için Ayarlar > Uygulamalar > byteforge, ya da:
 
 ```powershell
