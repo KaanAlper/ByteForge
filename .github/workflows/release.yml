@@ -1,15 +1,57 @@
 name: Release
 
-# Bir sürüm etiketi (v0.1.0 gibi) push'landığında tüm platformlar için
-# kurulumları derler ve bir GitHub Release'e yükler. Elle de tetiklenebilir.
+# Actions > Release > Run workflow. Sürüm, son sürümden bu yana gelen commit'lerden hesaplanır
+# (semantic versioning, Logical Lunge ile aynı kural): "feat:" -> MINOR, "fix:" / "perf:" / diğerleri -> PATCH,
+# türden sonra "!" (ör. "refactor!:") ya da bir breaking-change dipnotu -> MAJOR. "bump" ile seviye elle seçilir.
+# Daha önce kullanılmış bir etiket (başarısız denemeler dahil) asla yeniden kullanılmaz; yalnız vX.Y.Z etiketleri sayılır.
+# Tüm platformların kurulumları tek Release'e yüklenir; latest.json uygulama içi güncelleyiciyi besler.
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version step: auto reads the commits (feat: minor, fix: patch, '!' or a breaking-change footer: major)"
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+        required: true
+      notes:
+        description: "Release notes (optional)"
+        type: string
+        default: ""
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      ver: ${{ steps.v.outputs.ver }}
+      sha: ${{ steps.v.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sıradaki sürümü hesapla
+        id: v
+        shell: pwsh
+        env:
+          BUMP: ${{ inputs.bump || 'auto' }}
+        run: |
+          $tags = @(git tag --list 'v*')
+          $last = $tags | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
+            Sort-Object { [version]($_ -replace '^v', '') } -Descending | Select-Object -First 1
+          $commits = @()
+          if ($last) { $commits = @((git log "$last..HEAD" --format='%s%n%b%x1e') -join "`n" -split [char]0x1e) }
+          $base = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $ver = & ./tools/release-version.ps1 -BaseVersion $base -Tags $tags -Commits $commits -Bump $env:BUMP
+          Write-Host "Son sürüm: $last, adım: $env:BUMP -> $ver"
+          "ver=$ver" >> $env:GITHUB_OUTPUT
+          "sha=$(git rev-parse HEAD)" >> $env:GITHUB_OUTPUT
+
   release:
+    needs: version
     permissions:
       contents: write
     strategy:
@@ -26,8 +68,16 @@ jobs:
             args: ""
 
     runs-on: ${{ matrix.platform }}
+    env:
+      VER: ${{ needs.version.outputs.ver }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+
+      - name: Sürümü damgala
+        shell: pwsh
+        run: ./tools/set-version.ps1 -Version $env:VER
 
       - name: Linux sistem bağımlılıkları
         if: matrix.platform == 'ubuntu-22.04'
@@ -67,12 +117,15 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "ByteForge ${{ github.ref_name }}"
+          tagName: v${{ env.VER }}
+          releaseName: "ByteForge v${{ env.VER }}"
+          releaseCommitish: ${{ needs.version.outputs.sha }}
           releaseBody: |
-            ByteForge ${{ github.ref_name }} — çoklu platform kurulumlar aşağıda.
+            ByteForge v${{ env.VER }} — çoklu platform kurulumlar aşağıda.
 
-            - **Windows:** `.msi` veya `.exe` (setup)
+            ${{ inputs.notes }}
+
+            - **Windows:** `.exe` (setup) veya `.msi`; tek satır: `irm https://raw.githubusercontent.com/KaanAlper/ByteForge/master/install.ps1 | iex`
             - **macOS:** `.dmg` (Apple Silicon + Intel ayrı)
             - **Linux:** `.AppImage` (taşınabilir), `.deb`, `.rpm`
 
@@ -84,3 +137,18 @@ jobs:
           includeUpdaterJson: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # install.ps1 kurulum programının SHA-256'sını doğrular
+      - name: Windows kurulumunun .sha256'sı
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $exe = Get-ChildItem target/release/bundle/nsis -Filter "byteforge_$($env:VER)_x64-setup.exe" | Select-Object -First 1
+          if (-not $exe) { throw 'NSIS kurulumu bulunamadı' }
+          $h = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          $sum = "$($exe.FullName).sha256"
+          "$h  $($exe.Name)" | Set-Content $sum -Encoding ascii
+          gh release upload "v$env:VER" $sum --clobber
+          if ($LASTEXITCODE) { throw 'sha256 yüklenemedi' }
