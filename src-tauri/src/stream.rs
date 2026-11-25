@@ -140,3 +140,63 @@ pub fn run_stream(
         }
     });
 }
+
+/// Bir derleme komutunu (apktool b gibi) arka planda canlı akışla çalıştırır.
+/// Ana thread bloke olmaz; çıktılar anlık olarak UI kanalına iletilir.
+pub fn run_build_stream(
+    bin: String,
+    args: Vec<String>,
+    output_file: PathBuf,
+    on_event: Channel<StreamEvent>,
+) {
+    std::thread::spawn(move || {
+        crate::console::log(format!("$ {} {}", bin, args.join(" ")));
+        let _ = on_event.send(StreamEvent::Line {
+            text: format!("Derleme başlatılıyor: {bin}"),
+        });
+        let mut child = match Command::new(&bin)
+            .args(&args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+        {
+            Ok(c) => c,
+            Err(e) => {
+                let _ = on_event.send(StreamEvent::Error {
+                    message: format!("{bin} başlatılamadı: {e}"),
+                });
+                return;
+            }
+        };
+
+        let mut handles = Vec::new();
+        if let Some(out) = child.stdout.take() {
+            handles.push(pump(out, on_event.clone()));
+        }
+        if let Some(err) = child.stderr.take() {
+            handles.push(pump(err, on_event.clone()));
+        }
+        let status = child.wait();
+        for h in handles {
+            let _ = h.join();
+        }
+
+        let is_ok = status.map(|s| s.success()).unwrap_or(false);
+        if output_file.exists() && is_ok {
+            let _ = on_event.send(StreamEvent::Done {
+                out_dir: output_file.to_string_lossy().into_owned(),
+                files: 1,
+            });
+        } else if output_file.exists() {
+            // Çıkış kodu non-zero olsa bile apk dosyası oluştuyda kabul et
+            let _ = on_event.send(StreamEvent::Done {
+                out_dir: output_file.to_string_lossy().into_owned(),
+                files: 1,
+            });
+        } else {
+            let _ = on_event.send(StreamEvent::Error {
+                message: format!("{bin} derleme işlemini tamamlayamadı veya çıktı dosyası üretilemedi"),
+            });
+        }
+    });
+}

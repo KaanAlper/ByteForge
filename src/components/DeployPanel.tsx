@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke, Channel } from "@tauri-apps/api/core";
 import { Square, Play } from "lucide-react";
-import type { AdbDevice, ResignResult, ApiError } from "../types";
+import type { AdbDevice, ApiError, StreamEvent } from "../types";
+import { runStream, ProgressBar, IDLE_STREAM, type StreamState } from "./StreamProgress";
 
 const errMsg = (e: unknown) => (e as Partial<ApiError>)?.message ?? String(e);
 const MAX_LINES = 800;
@@ -19,6 +20,7 @@ export function DeployPanel({
   const [log, setLog] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"sign" | "devices" | "install" | "launch" | null>(null);
+  const [stream, setStream] = useState<StreamState>(IDLE_STREAM);
 
   const [streaming, setStreaming] = useState(false);
   const [lines, setLines] = useState<string[]>([]);
@@ -37,12 +39,46 @@ export function DeployPanel({
     }
   };
 
-  const resign = () =>
-    call("sign", async () => {
-      const r = await invoke<ResignResult>("resign_apk_with_mods", { path: apkPath });
-      setSignedPath(r.signed_path);
-      setLog(`${r.note}\n→ ${r.signed_path}`);
+  const resign = () => {
+    setError(null);
+    setBusy("sign");
+    setStream({
+      active: true,
+      percent: -1,
+      current: 0,
+      total: 0,
+      lastLine: "Paketlenip imzalanıyor (zipalign + apksigner)...",
     });
+
+    const onEvent = (ev: StreamEvent) => {
+      if (ev.type === "progress") {
+        setStream((s) => ({
+          ...s,
+          active: true,
+          percent: ev.percent,
+          current: ev.current,
+          total: ev.total,
+        }));
+      } else if (ev.type === "line") {
+        setStream((s) => ({ ...s, lastLine: ev.text }));
+      } else if (ev.type === "done") {
+        setStream(IDLE_STREAM);
+        setBusy(null);
+        setSignedPath(ev.out_dir);
+        setLog(`İmzalandı → ${ev.out_dir}`);
+      } else if (ev.type === "error") {
+        setStream(IDLE_STREAM);
+        setBusy(null);
+        setError(ev.message);
+      }
+    };
+
+    runStream("resign_apk_stream", { path: apkPath }, onEvent).catch((e) => {
+      setStream(IDLE_STREAM);
+      setBusy(null);
+      setError(errMsg(e));
+    });
+  };
 
   const refresh = () =>
     call("devices", async () => {
@@ -142,6 +178,8 @@ export function DeployPanel({
           </button>
         )}
       </div>
+
+      <ProgressBar state={stream} />
 
       {signedPath && <p className="muted mono">{signedPath}</p>}
       {noDevices && <p className="muted">Bağlı cihaz yok (adb devices boş).</p>}

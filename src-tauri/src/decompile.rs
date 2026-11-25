@@ -392,6 +392,28 @@ pub fn build_apk(out_dir: String) -> Result<String, ApiError> {
     Ok(output.to_string_lossy().into_owned())
 }
 
+/// Decode edilmiş projeyi apktool ile arka planda canlı akışla (async streaming) derler.
+/// Ana thread kilitlenmez; anlık apktool çıktıları kanaldan iletilir.
+#[tauri::command]
+pub fn build_apk_stream(
+    out_dir: String,
+    on_event: tauri::ipc::Channel<crate::stream::StreamEvent>,
+) -> Result<(), ApiError> {
+    let base = safe_decoded_dir(&out_dir)?;
+    let apktool = tool("apktool")?;
+    let name = base
+        .file_name()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "app".into());
+    let output = base
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(format!("{name}-patched.apk"));
+    let args = apktool_build_args(&base, &output);
+    crate::stream::run_build_stream(apktool, args, output, on_event);
+    Ok(())
+}
+
 /// Checkpoint (decode dizini yedeği) kökü.
 fn checkpoints_root() -> Result<PathBuf, ApiError> {
     let home = std::env::var("HOME").map_err(|_| ApiError::ProcessFailed {

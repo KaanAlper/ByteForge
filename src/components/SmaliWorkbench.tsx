@@ -294,12 +294,46 @@ export function SmaliWorkbench({
       setStatus(`Yamalandı: ${hit.method} → return true (${hit.file})`);
     });
 
-  const build = () =>
-    run("build", async () => {
-      if (!outDir) return;
-      const apk = await invoke<string>("build_apk", { outDir });
-      setStatus(`Yeniden derlendi → ${apk} — Dağıt sekmesinde imzalayın`);
+  const build = () => {
+    if (!outDir) return;
+    setError(null);
+    setBusy("build");
+    setStream({
+      active: true,
+      percent: -1,
+      current: 0,
+      total: 0,
+      lastLine: "APK derleniyor (apktool b)...",
     });
+
+    const onEvent = (ev: StreamEvent) => {
+      if (ev.type === "progress") {
+        setStream((s) => ({
+          ...s,
+          active: true,
+          percent: ev.percent,
+          current: ev.current,
+          total: ev.total,
+        }));
+      } else if (ev.type === "line") {
+        setStream((s) => ({ ...s, lastLine: ev.text }));
+      } else if (ev.type === "done") {
+        setStream(IDLE_STREAM);
+        setBusy(null);
+        setStatus(`Yeniden derlendi → ${ev.out_dir} — Dağıt sekmesinde imzalayın`);
+      } else if (ev.type === "error") {
+        setStream(IDLE_STREAM);
+        setBusy(null);
+        setError(ev.message);
+      }
+    };
+
+    runStream("build_apk_stream", { outDir }, onEvent).catch((e) => {
+      setStream(IDLE_STREAM);
+      setBusy(null);
+      setError(errMsg(e));
+    });
+  };
 
   if (!outDir) {
     return (

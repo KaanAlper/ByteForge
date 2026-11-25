@@ -273,3 +273,35 @@ pub fn resign_apk_with_mods(path: String) -> Result<ResignResult, ApiError> {
         note,
     })
 }
+
+/// APK imzalama ve paketleme işlemini arka planda canlı akışla çalıştırır.
+/// Ana thread donmaz; log ve durum güncellemeleri kanalla iletilir.
+#[tauri::command]
+pub fn resign_apk_stream(
+    path: String,
+    on_event: tauri::ipc::Channel<crate::stream::StreamEvent>,
+) -> Result<(), ApiError> {
+    let _ = validate_file(&path, APK_EXTS)?;
+    std::thread::spawn(move || {
+        let _ = on_event.send(crate::stream::StreamEvent::Line {
+            text: "Zipalign ve imzalama işlemi başlatılıyor...".into(),
+        });
+        match resign_apk_with_mods(path) {
+            Ok(res) => {
+                let _ = on_event.send(crate::stream::StreamEvent::Line {
+                    text: res.note.clone(),
+                });
+                let _ = on_event.send(crate::stream::StreamEvent::Done {
+                    out_dir: res.signed_path,
+                    files: 1,
+                });
+            }
+            Err(e) => {
+                let _ = on_event.send(crate::stream::StreamEvent::Error {
+                    message: format!("{e:?}"),
+                });
+            }
+        }
+    });
+    Ok(())
+}
